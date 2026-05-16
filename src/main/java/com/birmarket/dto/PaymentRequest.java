@@ -1,6 +1,7 @@
 package com.birmarket.dto;
 
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.Setter;
@@ -13,7 +14,10 @@ public class PaymentRequest {
     private String cardHolderName;
 
     @NotBlank(message = "Card number is required")
-    @Size(min = 16, max = 16, message = "Kartin uzunlugu 16 olmalidir")
+    @Pattern(
+            regexp = "\\d{16}",
+            message = "Card number must contain exactly 16 digits"
+    )
     private String cardNumber;
 
     @NotBlank(message = "Expiry month is required")

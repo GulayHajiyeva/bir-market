@@ -46,53 +46,64 @@ public class PaymentServiceImpl implements PaymentService {
     private final PaymentRepository paymentRepository;
     private final OrderRepository orderRepository;
     private final Options iyzicoOptions;
-
     @Override
     @Transactional
     public PaymentResponse payForOrder(Long orderId, PaymentRequest req) {
+
         log.info("ActionLog.payForOrder.start");
 
         User customer = SecurityHelper.getCurrentUser();
 
         Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new NotFoundException("Order not found: " + orderId));
+                .orElseThrow(() ->
+                        new NotFoundException("Order not found: " + orderId));
 
         if (!order.getCustomer().getId().equals(customer.getId())) {
             throw new ForbiddenException("This is not your order");
-        }
-
-        if (order.getStatus() != OrderStatus.PENDING) {
-            throw new BadRequestException("Order is not in PENDING status, current status: " + order.getStatus());
         }
 
         if (paymentRepository.existsByOrderAndPaymentStatus(order, PaymentStatus.PAID)) {
             throw new BadRequestException("This order is already paid");
         }
 
-        Payment payment = new Payment();
+        Payment payment = paymentRepository.findByOrder(order)
+                .orElse(new Payment());
+
         payment.setOrder(order);
         payment.setAmount(order.getTotalAmount());
         payment.setPaymentStatus(PaymentStatus.PENDING);
         payment.setConversationId(UUID.randomUUID().toString());
+        payment.setErrorMessage(null);
+
         payment = paymentRepository.save(payment);
 
-        CreatePaymentRequest iyzicoRequest = buildIyzicoRequest(order, customer, req, payment.getConversationId());
-        com.iyzipay.model.Payment iyzicoResult = com.iyzipay.model.Payment.create(iyzicoRequest, iyzicoOptions);
+        CreatePaymentRequest iyzicoRequest =
+                buildIyzicoRequest(order, customer, req, payment.getConversationId());
+
+        com.iyzipay.model.Payment iyzicoResult =
+                com.iyzipay.model.Payment.create(iyzicoRequest, iyzicoOptions);
 
         if ("success".equals(iyzicoResult.getStatus())) {
+
             payment.setPaymentStatus(PaymentStatus.PAID);
             payment.setIyzicoPaymentId(iyzicoResult.getPaymentId());
+
             order.setStatus(OrderStatus.CONFIRMED);
+
             orderRepository.save(order);
+
         } else {
+
             payment.setPaymentStatus(PaymentStatus.FAILED);
             payment.setErrorMessage(iyzicoResult.getErrorMessage());
         }
 
         payment = paymentRepository.save(payment);
+
         PaymentResponse response = PaymentResponse.fromEntity(payment);
 
         log.info("ActionLog.payForOrder.end");
+
         return response;
     }
 

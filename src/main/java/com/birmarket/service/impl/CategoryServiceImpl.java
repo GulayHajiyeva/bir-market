@@ -11,6 +11,7 @@ import com.birmarket.service.interfaces.CategoryService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -68,6 +69,7 @@ public class CategoryServiceImpl implements CategoryService {
         return response;
     }
 
+    @Transactional
     @Override
     public CategoryResponse update(Long id, CategoryRequest req) {
         log.info("ActionLog.update.start");
@@ -107,6 +109,7 @@ public class CategoryServiceImpl implements CategoryService {
         log.info("ActionLog.delete.end");
     }
 
+    @Transactional
     @Override
     public CategoryResponse deactivate(Long id) {
         log.info("ActionLog.deactivate.start");
@@ -119,6 +122,7 @@ public class CategoryServiceImpl implements CategoryService {
         return response;
     }
 
+    @Transactional
     @Override
     public CategoryResponse activate(Long id) {
         log.info("ActionLog.activate.start");
