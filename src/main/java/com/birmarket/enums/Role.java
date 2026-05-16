@@ -1,4 +1,4 @@
-package com.birmarket.entity;
+package com.birmarket.enums;
 
 public enum Role {
     ADMIN,

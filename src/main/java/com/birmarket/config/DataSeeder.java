@@ -2,7 +2,7 @@ package com.birmarket.config;
 
 import com.birmarket.entity.Category;
 import com.birmarket.entity.Product;
-import com.birmarket.entity.Role;
+import com.birmarket.enums.Role;
 import com.birmarket.entity.User;
 import com.birmarket.repository.CategoryRepository;
 import com.birmarket.repository.ProductRepository;

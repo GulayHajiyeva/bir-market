@@ -2,7 +2,7 @@ package com.birmarket.service.interfaces;
 
 import com.birmarket.dto.OrderResponse;
 import com.birmarket.dto.PlaceOrderRequest;
-import com.birmarket.entity.OrderStatus;
+import com.birmarket.enums.OrderStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 

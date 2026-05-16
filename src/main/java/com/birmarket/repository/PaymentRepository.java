@@ -2,7 +2,7 @@ package com.birmarket.repository;
 
 import com.birmarket.entity.Order;
 import com.birmarket.entity.Payment;
-import com.birmarket.entity.PaymentStatus;
+import com.birmarket.enums.PaymentStatus;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;

@@ -3,7 +3,7 @@ package com.birmarket.controller;
 import com.birmarket.dto.ApiResponse;
 import com.birmarket.dto.PaymentRequest;
 import com.birmarket.dto.PaymentResponse;
-import com.birmarket.entity.PaymentStatus;
+import com.birmarket.enums.PaymentStatus;
 import com.birmarket.service.interfaces.PaymentService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;

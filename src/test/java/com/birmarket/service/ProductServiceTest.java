@@ -6,7 +6,7 @@ import com.birmarket.dto.ProductRequest;
 import com.birmarket.dto.ProductResponse;
 import com.birmarket.entity.Category;
 import com.birmarket.entity.Product;
-import com.birmarket.entity.Role;
+import com.birmarket.enums.Role;
 import com.birmarket.entity.User;
 import com.birmarket.exception.ForbiddenException;
 import com.birmarket.exception.NotFoundException;

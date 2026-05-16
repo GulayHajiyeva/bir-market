@@ -1,7 +1,7 @@
 package com.birmarket.service.impl;
 
 import com.birmarket.dto.UserResponse;
-import com.birmarket.entity.Role;
+import com.birmarket.enums.Role;
 import com.birmarket.entity.User;
 import com.birmarket.exception.BadRequestException;
 import com.birmarket.exception.NotFoundException;

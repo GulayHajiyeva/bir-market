@@ -3,7 +3,7 @@ package com.birmarket.service.impl;
 import com.birmarket.dto.AuthResponse;
 import com.birmarket.dto.LoginRequest;
 import com.birmarket.dto.RegisterRequest;
-import com.birmarket.entity.Role;
+import com.birmarket.enums.Role;
 import com.birmarket.entity.User;
 import com.birmarket.exception.AlreadyExistsException;
 import com.birmarket.exception.BadRequestException;

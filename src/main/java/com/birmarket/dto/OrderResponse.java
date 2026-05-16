@@ -1,8 +1,7 @@
 package com.birmarket.dto;
 
 import com.birmarket.entity.Order;
-import com.birmarket.entity.OrderItem;
-import com.birmarket.entity.OrderStatus;
+import com.birmarket.enums.OrderStatus;
 import lombok.Getter;
 import lombok.Setter;
 

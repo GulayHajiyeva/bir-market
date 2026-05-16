@@ -3,7 +3,7 @@ package com.birmarket.controller;
 import com.birmarket.dto.AuthResponse;
 import com.birmarket.dto.LoginRequest;
 import com.birmarket.dto.RegisterRequest;
-import com.birmarket.entity.Role;
+import com.birmarket.enums.Role;
 import com.birmarket.service.interfaces.AuthService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;

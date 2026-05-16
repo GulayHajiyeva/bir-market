@@ -1,7 +1,7 @@
 package com.birmarket.repository;
 
 import com.birmarket.entity.Order;
-import com.birmarket.entity.OrderStatus;
+import com.birmarket.enums.OrderStatus;
 import com.birmarket.entity.User;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;

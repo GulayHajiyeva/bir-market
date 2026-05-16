@@ -1,6 +1,6 @@
 package com.birmarket.dto;
 
-import com.birmarket.entity.Role;
+import com.birmarket.enums.Role;
 import lombok.Getter;
 import lombok.Setter;
 

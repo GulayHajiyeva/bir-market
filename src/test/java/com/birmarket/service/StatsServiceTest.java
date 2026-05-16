@@ -2,8 +2,8 @@ package com.birmarket.service;
 
 import com.birmarket.service.impl.StatsServiceImpl;
 import com.birmarket.dto.StatsResponse;
-import com.birmarket.entity.OrderStatus;
-import com.birmarket.entity.Role;
+import com.birmarket.enums.OrderStatus;
+import com.birmarket.enums.Role;
 import com.birmarket.repository.CategoryRepository;
 import com.birmarket.repository.OrderRepository;
 import com.birmarket.repository.ProductRepository;

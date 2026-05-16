@@ -3,7 +3,7 @@ package com.birmarket.controller;
 import com.birmarket.dto.ApiResponse;
 import com.birmarket.dto.StatsResponse;
 import com.birmarket.dto.UserResponse;
-import com.birmarket.entity.Role;
+import com.birmarket.enums.Role;
 import com.birmarket.service.interfaces.StatsService;
 import com.birmarket.service.interfaces.UserService;
 import lombok.RequiredArgsConstructor;

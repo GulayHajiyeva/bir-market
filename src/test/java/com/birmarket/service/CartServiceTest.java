@@ -1,12 +1,12 @@
 package com.birmarket.service;
 
+import com.birmarket.enums.Role;
 import com.birmarket.service.impl.CartServiceImpl;
 import com.birmarket.dto.AddToCartRequest;
 import com.birmarket.dto.CartResponse;
 import com.birmarket.entity.*;
 import com.birmarket.exception.BadRequestException;
 import com.birmarket.exception.ForbiddenException;
-import com.birmarket.exception.NotFoundException;
 import com.birmarket.repository.CartItemRepository;
 import com.birmarket.repository.CartRepository;
 import com.birmarket.repository.ProductRepository;

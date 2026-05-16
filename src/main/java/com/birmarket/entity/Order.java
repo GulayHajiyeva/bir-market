@@ -1,5 +1,6 @@
 package com.birmarket.entity;
 
+import com.birmarket.enums.OrderStatus;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;

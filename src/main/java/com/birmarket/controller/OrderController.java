@@ -3,7 +3,7 @@ package com.birmarket.controller;
 import com.birmarket.dto.ApiResponse;
 import com.birmarket.dto.OrderResponse;
 import com.birmarket.dto.PlaceOrderRequest;
-import com.birmarket.entity.OrderStatus;
+import com.birmarket.enums.OrderStatus;
 import com.birmarket.service.interfaces.OrderService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;

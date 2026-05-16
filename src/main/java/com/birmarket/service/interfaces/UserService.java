@@ -1,7 +1,7 @@
 package com.birmarket.service.interfaces;
 
 import com.birmarket.dto.UserResponse;
-import com.birmarket.entity.Role;
+import com.birmarket.enums.Role;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 

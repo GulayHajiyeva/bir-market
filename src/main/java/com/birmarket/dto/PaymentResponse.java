@@ -1,7 +1,7 @@
 package com.birmarket.dto;
 
 import com.birmarket.entity.Payment;
-import com.birmarket.entity.PaymentStatus;
+import com.birmarket.enums.PaymentStatus;
 import lombok.Getter;
 import lombok.Setter;
 
