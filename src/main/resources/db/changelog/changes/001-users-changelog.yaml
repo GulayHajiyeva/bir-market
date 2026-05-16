@@ -1,0 +1,134 @@
+databaseChangeLog:
+  - changeSet:
+      id: 001-1-create-users
+      author: gulay
+      changes:
+        - createTable:
+            tableName: users
+            columns:
+
+              - column:
+                  name: id
+                  type: BIGSERIAL
+                  constraints:
+                    primaryKey: true
+                    primaryKeyName: pk_users
+                    nullable: false
+
+              - column:
+                  name: email
+                  type: VARCHAR(100)
+                  constraints:
+                    nullable: false
+                    unique: true
+                    uniqueConstraintName: uq_users_email
+
+              - column:
+                  name: password
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: full_name
+                  type: VARCHAR(100)
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: phone
+                  type: VARCHAR(20)
+
+              - column:
+                  name: role
+                  type: VARCHAR(20)
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: blocked
+                  type: BOOLEAN
+                  defaultValueBoolean: false
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: enabled
+                  type: BOOLEAN
+                  defaultValueBoolean: true
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: created_at
+                  type: TIMESTAMP
+                  defaultValueComputed: "NOW()"
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: updated_at
+                  type: TIMESTAMP
+                  defaultValueComputed: "NOW()"
+                  constraints:
+                    nullable: false
+
+      rollback:
+        - dropTable:
+            tableName: users
+
+
+  - changeSet:
+      id: 001-2-users-role-constraint
+      author: gulay
+      comment: "Only allow valid role values"
+
+      changes:
+        - sql:
+            sql: >
+              ALTER TABLE users
+              ADD CONSTRAINT chk_users_role
+              CHECK (role IN ('ADMIN', 'SELLER', 'CUSTOMER'));
+            rollback: >
+              ALTER TABLE users DROP CONSTRAINT IF EXISTS chk_users_role;
+
+  # -------------------------------------------------------
+  # 001-3: indexes for common queries
+  # -------------------------------------------------------
+  - changeSet:
+      id: 001-3-users-indexes
+      author: gulay
+      comment: "Speed up queries we do often - find by role, filter blocked users"
+
+      changes:
+        - createIndex:
+            indexName: idx_users_role
+            tableName: users
+            columns:
+              - column:
+                  name: role
+
+        - createIndex:
+            indexName: idx_users_blocked
+            tableName: users
+            columns:
+              - column:
+                  name: blocked
+
+        - createIndex:
+            indexName: idx_users_created_at
+            tableName: users
+            columns:
+              - column:
+                  name: created_at
+
+      rollback:
+        - dropIndex:
+            indexName: idx_users_role
+            tableName: users
+        - dropIndex:
+            indexName: idx_users_blocked
+            tableName: users
+        - dropIndex:
+            indexName: idx_users_created_at
+            tableName: users

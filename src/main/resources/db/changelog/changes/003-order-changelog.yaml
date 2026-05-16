@@ -1,0 +1,428 @@
+databaseChangeLog:
+  - changeSet:
+      id: 003-1-create-carts
+      author: gulay
+      changes:
+        - createTable:
+            tableName: carts
+            columns:
+
+              - column:
+                  name: id
+                  type: BIGSERIAL
+                  constraints:
+                    primaryKey: true
+                    primaryKeyName: pk_carts
+                    nullable: false
+
+              - column:
+                  name: user_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+                    unique: true
+                    uniqueConstraintName: uq_carts_user
+
+              - column:
+                  name: created_at
+                  type: TIMESTAMP
+                  defaultValueComputed: "NOW()"
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: updated_at
+                  type: TIMESTAMP
+                  defaultValueComputed: "NOW()"
+                  constraints:
+                    nullable: false
+
+      rollback:
+        - dropTable:
+            tableName: carts
+
+
+  - changeSet:
+      id: 003-2-create-cart-items
+      author: gulay
+      comment: "Items inside a shopping cart"
+
+      changes:
+        - createTable:
+            tableName: cart_items
+            columns:
+
+              - column:
+                  name: id
+                  type: BIGSERIAL
+                  constraints:
+                    primaryKey: true
+                    primaryKeyName: pk_cart_items
+                    nullable: false
+
+              - column:
+                  name: cart_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: product_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: quantity
+                  type: INTEGER
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: price_at_addition
+                  type: NUMERIC(12, 2)
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: added_at
+                  type: TIMESTAMP
+                  defaultValueComputed: "NOW()"
+                  constraints:
+                    nullable: false
+
+      rollback:
+        - dropTable:
+            tableName: cart_items
+
+
+  - changeSet:
+      id: 003-3-cart-constraints
+      author: gulay
+      comment: "FK constraints and prevent duplicate products in cart"
+
+      changes:
+        - addForeignKeyConstraint:
+            constraintName: fk_carts_user
+            baseTableName: carts
+            baseColumnNames: user_id
+            referencedTableName: users
+            referencedColumnNames: id
+            onDelete: CASCADE
+
+        - addForeignKeyConstraint:
+            constraintName: fk_cart_items_cart
+            baseTableName: cart_items
+            baseColumnNames: cart_id
+            referencedTableName: carts
+            referencedColumnNames: id
+            onDelete: CASCADE
+
+        - addForeignKeyConstraint:
+            constraintName: fk_cart_items_product
+            baseTableName: cart_items
+            baseColumnNames: product_id
+            referencedTableName: products
+            referencedColumnNames: id
+            onDelete: CASCADE
+
+        - addUniqueConstraint:
+            constraintName: uq_cart_items_cart_product
+            tableName: cart_items
+            columnNames: cart_id, product_id
+
+        - sql:
+            sql: >
+              ALTER TABLE cart_items
+              ADD CONSTRAINT chk_cart_items_qty CHECK (quantity > 0);
+            rollback: >
+              ALTER TABLE cart_items DROP CONSTRAINT IF EXISTS chk_cart_items_qty;
+
+      rollback:
+        - dropForeignKeyConstraint:
+            baseTableName: carts
+            constraintName: fk_carts_user
+        - dropForeignKeyConstraint:
+            baseTableName: cart_items
+            constraintName: fk_cart_items_cart
+        - dropForeignKeyConstraint:
+            baseTableName: cart_items
+            constraintName: fk_cart_items_product
+        - dropUniqueConstraint:
+            constraintName: uq_cart_items_cart_product
+            tableName: cart_items
+
+
+  - changeSet:
+      id: 003-4-create-orders
+      author: gulay
+      comment: "Orders placed by customers"
+
+      changes:
+        - createTable:
+            tableName: orders
+            columns:
+
+              - column:
+                  name: id
+                  type: BIGSERIAL
+                  constraints:
+                    primaryKey: true
+                    primaryKeyName: pk_orders
+                    nullable: false
+
+              - column:
+                  name: order_number
+                  type: VARCHAR(50)
+                  constraints:
+                    nullable: false
+                    unique: true
+                    uniqueConstraintName: uq_orders_number
+
+              - column:
+                  name: customer_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: status
+                  type: VARCHAR(20)
+                  defaultValue: "PENDING"
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: total_amount
+                  type: NUMERIC(14, 2)
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: shipping_address
+                  type: VARCHAR(500)
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: notes
+                  type: VARCHAR(1000)
+
+              - column:
+                  name: created_at
+                  type: TIMESTAMP
+                  defaultValueComputed: "NOW()"
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: updated_at
+                  type: TIMESTAMP
+                  defaultValueComputed: "NOW()"
+                  constraints:
+                    nullable: false
+
+      rollback:
+        - dropTable:
+            tableName: orders
+
+
+  - changeSet:
+      id: 003-5-create-order-items
+      author: gulay
+      comment: "Line items of an order - price is snapshot at purchase time"
+
+      changes:
+        - createTable:
+            tableName: order_items
+            columns:
+
+              - column:
+                  name: id
+                  type: BIGSERIAL
+                  constraints:
+                    primaryKey: true
+                    primaryKeyName: pk_order_items
+                    nullable: false
+
+              - column:
+                  name: order_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: product_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: seller_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: quantity
+                  type: INTEGER
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: unit_price
+                  type: NUMERIC(12, 2)
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: subtotal
+                  type: NUMERIC(12, 2)
+                  constraints:
+                    nullable: false
+
+      rollback:
+        - dropTable:
+            tableName: order_items
+
+
+  - changeSet:
+      id: 003-6-order-constraints
+      author: gulay
+      comment: "Foreign keys, status check, and positive amount checks"
+
+      changes:
+        - addForeignKeyConstraint:
+            constraintName: fk_orders_customer
+            baseTableName: orders
+            baseColumnNames: customer_id
+            referencedTableName: users
+            referencedColumnNames: id
+            onDelete: RESTRICT
+
+        - addForeignKeyConstraint:
+            constraintName: fk_order_items_order
+            baseTableName: order_items
+            baseColumnNames: order_id
+            referencedTableName: orders
+            referencedColumnNames: id
+            onDelete: CASCADE
+
+        - addForeignKeyConstraint:
+            constraintName: fk_order_items_product
+            baseTableName: order_items
+            baseColumnNames: product_id
+            referencedTableName: products
+            referencedColumnNames: id
+            onDelete: RESTRICT
+
+        - addForeignKeyConstraint:
+            constraintName: fk_order_items_seller
+            baseTableName: order_items
+            baseColumnNames: seller_id
+            referencedTableName: users
+            referencedColumnNames: id
+            onDelete: RESTRICT
+
+        - sql:
+            sql: >
+              ALTER TABLE orders
+              ADD CONSTRAINT chk_orders_status
+              CHECK (status IN ('PENDING','CONFIRMED','PROCESSING','SHIPPED','DELIVERED','CANCELLED','REFUNDED'));
+
+              ALTER TABLE orders
+              ADD CONSTRAINT chk_orders_total CHECK (total_amount > 0);
+
+              ALTER TABLE order_items
+              ADD CONSTRAINT chk_order_items_qty CHECK (quantity > 0);
+
+              ALTER TABLE order_items
+              ADD CONSTRAINT chk_order_items_price CHECK (unit_price > 0);
+            rollback: >
+              ALTER TABLE orders DROP CONSTRAINT IF EXISTS chk_orders_status;
+              ALTER TABLE orders DROP CONSTRAINT IF EXISTS chk_orders_total;
+              ALTER TABLE order_items DROP CONSTRAINT IF EXISTS chk_order_items_qty;
+              ALTER TABLE order_items DROP CONSTRAINT IF EXISTS chk_order_items_price;
+
+      rollback:
+        - dropForeignKeyConstraint:
+            baseTableName: orders
+            constraintName: fk_orders_customer
+        - dropForeignKeyConstraint:
+            baseTableName: order_items
+            constraintName: fk_order_items_order
+        - dropForeignKeyConstraint:
+            baseTableName: order_items
+            constraintName: fk_order_items_product
+        - dropForeignKeyConstraint:
+            baseTableName: order_items
+            constraintName: fk_order_items_seller
+
+
+  - changeSet:
+      id: 003-7-order-indexes
+      author: gulay
+      comment: "Speed up order history and seller order lookups"
+
+      changes:
+        - createIndex:
+            indexName: idx_orders_customer_id
+            tableName: orders
+            columns:
+              - column:
+                  name: customer_id
+
+        - createIndex:
+            indexName: idx_orders_status
+            tableName: orders
+            columns:
+              - column:
+                  name: status
+
+        - createIndex:
+            indexName: idx_orders_created_at
+            tableName: orders
+            columns:
+              - column:
+                  name: created_at
+
+        - createIndex:
+            indexName: idx_order_items_order_id
+            tableName: order_items
+            columns:
+              - column:
+                  name: order_id
+
+        - createIndex:
+            indexName: idx_order_items_seller_id
+            tableName: order_items
+            columns:
+              - column:
+                  name: seller_id
+
+        - createIndex:
+            indexName: idx_cart_items_cart_id
+            tableName: cart_items
+            columns:
+              - column:
+                  name: cart_id
+
+      rollback:
+        - dropIndex:
+            indexName: idx_orders_customer_id
+            tableName: orders
+        - dropIndex:
+            indexName: idx_orders_status
+            tableName: orders
+        - dropIndex:
+            indexName: idx_orders_created_at
+            tableName: orders
+        - dropIndex:
+            indexName: idx_order_items_order_id
+            tableName: order_items
+        - dropIndex:
+            indexName: idx_order_items_seller_id
+            tableName: order_items
+        - dropIndex:
+            indexName: idx_cart_items_cart_id
+            tableName: cart_items

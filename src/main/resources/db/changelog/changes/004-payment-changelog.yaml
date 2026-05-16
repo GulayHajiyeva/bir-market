@@ -1,0 +1,117 @@
+databaseChangeLog:
+  - changeSet:
+      id: 004-1-create-payments
+      author: gulay
+      changes:
+        - createTable:
+            tableName: payments
+            columns:
+
+              - column:
+                  name: id
+                  type: BIGSERIAL
+                  constraints:
+                    primaryKey: true
+                    primaryKeyName: pk_payments
+                    nullable: false
+
+              - column:
+                  name: order_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+                    unique: true
+                    uniqueConstraintName: uq_payments_order
+
+              - column:
+                  name: payment_status
+                  type: VARCHAR(20)
+                  defaultValue: "PENDING"
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: iyzico_payment_id
+                  type: VARCHAR(100)
+
+              - column:
+                  name: conversation_id
+                  type: VARCHAR(100)
+                  constraints:
+                    unique: true
+                    uniqueConstraintName: uq_payments_conversation_id
+
+              - column:
+                  name: amount
+                  type: NUMERIC(14, 2)
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: error_message
+                  type: VARCHAR(500)
+
+              - column:
+                  name: created_at
+                  type: TIMESTAMP
+                  defaultValueComputed: "NOW()"
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: updated_at
+                  type: TIMESTAMP
+                  defaultValueComputed: "NOW()"
+                  constraints:
+                    nullable: false
+
+      rollback:
+        - dropTable:
+            tableName: payments
+
+
+  - changeSet:
+      id: 004-2-payment-constraints
+      author: gulay
+      comment: "FK to orders table and check constraint for valid payment statuses"
+
+      changes:
+        - addForeignKeyConstraint:
+            constraintName: fk_payments_order
+            baseTableName: payments
+            baseColumnNames: order_id
+            referencedTableName: orders
+            referencedColumnNames: id
+            onDelete: RESTRICT
+
+        - sql:
+            sql: >
+              ALTER TABLE payments
+              ADD CONSTRAINT chk_payments_status
+              CHECK (payment_status IN ('PENDING','PAID','FAILED'));
+            rollback: >
+              ALTER TABLE payments DROP CONSTRAINT IF EXISTS chk_payments_status;
+
+      rollback:
+        - dropForeignKeyConstraint:
+            baseTableName: payments
+            constraintName: fk_payments_order
+
+
+  - changeSet:
+      id: 004-3-payment-indexes
+      author: gulay
+      comment: "Index on order_id for payment lookups"
+
+      changes:
+        - createIndex:
+            indexName: idx_payments_order_id
+            tableName: payments
+            columns:
+              - column:
+                  name: order_id
+
+      rollback:
+        - dropIndex:
+            indexName: idx_payments_order_id
+            tableName: payments

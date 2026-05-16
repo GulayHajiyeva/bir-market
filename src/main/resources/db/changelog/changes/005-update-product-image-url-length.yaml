@@ -1,0 +1,15 @@
+databaseChangeLog:
+- changeSet:
+    id: 005-update-product-image-url-length
+    author: gulay
+    changes:
+      - modifyDataType:
+          tableName: products
+          columnName: image_url
+          newDataType: TEXT
+
+    rollback:
+      - modifyDataType:
+          tableName: products
+          columnName: image_url
+          newDataType: VARCHAR(500)
