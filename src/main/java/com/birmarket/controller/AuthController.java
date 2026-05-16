@@ -5,7 +5,6 @@ import com.birmarket.dto.AuthResponse;
 import com.birmarket.dto.LoginRequest;
 import com.birmarket.dto.RegisterRequest;
 import com.birmarket.service.interfaces.AuthService;
-import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;

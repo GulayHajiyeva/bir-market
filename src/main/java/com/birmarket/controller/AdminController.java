@@ -6,7 +6,6 @@ import com.birmarket.dto.UserResponse;
 import com.birmarket.entity.Role;
 import com.birmarket.service.interfaces.StatsService;
 import com.birmarket.service.interfaces.UserService;
-import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;

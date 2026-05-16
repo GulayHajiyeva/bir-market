@@ -4,7 +4,6 @@ import com.birmarket.dto.ApiResponse;
 import com.birmarket.dto.ProductRequest;
 import com.birmarket.dto.ProductResponse;
 import com.birmarket.service.interfaces.ProductService;
-import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;

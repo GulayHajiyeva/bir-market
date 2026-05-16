@@ -4,7 +4,6 @@ import com.birmarket.dto.ApiResponse;
 import com.birmarket.dto.CategoryRequest;
 import com.birmarket.dto.CategoryResponse;
 import com.birmarket.service.interfaces.CategoryService;
-import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
