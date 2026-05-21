@@ -7,6 +7,7 @@ import com.birmarket.enums.Role;
 import com.birmarket.entity.User;
 import com.birmarket.exception.AlreadyExistsException;
 import com.birmarket.exception.BadRequestException;
+import com.birmarket.mapper.AuthMapper;
 import com.birmarket.repository.UserRepository;
 import com.birmarket.security.JwtUtil;
 import com.birmarket.service.interfaces.AuthService;
@@ -26,7 +27,7 @@ public class AuthServiceImpl implements AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
     private final AuthenticationManager authManager;
-
+    private final AuthMapper authMapper;
     @Override
     public AuthResponse register(RegisterRequest req) {
         log.info("ActionLog.register.start");
@@ -39,17 +40,13 @@ public class AuthServiceImpl implements AuthService {
             throw new BadRequestException("Cannot register as admin");
         }
 
-        User newUser = new User();
-        newUser.setEmail(req.getEmail());
+        User newUser = authMapper.toUser(req);
         newUser.setPassword(passwordEncoder.encode(req.getPassword()));
-        newUser.setFullName(req.getFullName());
-        newUser.setPhone(req.getPhone());
-        newUser.setRole(req.getRole());
 
         User saved = userRepository.save(newUser);
-        String token = jwtUtil.createToken(saved);
-        AuthResponse response = new AuthResponse(token, saved.getId(), saved.getEmail(), saved.getFullName(), saved.getRole());
 
+        String token = jwtUtil.createToken(saved);
+        AuthResponse response = authMapper.toAuthResponse(token, saved);
         log.info("ActionLog.register.end");
         return response;
     }
@@ -64,8 +61,7 @@ public class AuthServiceImpl implements AuthService {
                 .orElseThrow(() -> new BadRequestException("User not found"));
 
         String token = jwtUtil.createToken(user);
-        AuthResponse response = new AuthResponse(token, user.getId(), user.getEmail(), user.getFullName(), user.getRole());
-
+        AuthResponse response = authMapper.toAuthResponse(token, user);
         log.info("ActionLog.login.end");
         return response;
     }

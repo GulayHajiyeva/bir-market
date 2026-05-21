@@ -1,5 +1,6 @@
 package com.birmarket.service;
 
+import com.birmarket.dto.ApiResponse;
 import com.birmarket.enums.OrderStatus;
 import com.birmarket.enums.PaymentStatus;
 import com.birmarket.enums.Role;
@@ -23,6 +24,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.ResponseEntity;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -128,18 +130,38 @@ class PaymentServiceTest {
 
     @Test
     void payForOrder_succeeds_when_iyzico_returns_success() {
-        com.iyzipay.model.Payment iyzicoResult = mock(com.iyzipay.model.Payment.class);
+
+        com.iyzipay.model.Payment iyzicoResult =
+                mock(com.iyzipay.model.Payment.class);
+
         when(iyzicoResult.getStatus()).thenReturn("success");
         when(iyzicoResult.getPaymentId()).thenReturn("iyzico-456");
 
-        when(orderRepository.findById(1L)).thenReturn(Optional.of(order));
-        when(paymentRepository.existsByOrderAndPaymentStatus(order, PaymentStatus.PAID)).thenReturn(false);
-        when(paymentRepository.save(any(Payment.class))).thenAnswer(inv -> inv.getArgument(0));
-        when(orderRepository.save(any(Order.class))).thenReturn(order);
-        iyzicoPaymentMock.when(() -> com.iyzipay.model.Payment.create(
-                any(CreatePaymentRequest.class), any(Options.class))).thenReturn(iyzicoResult);
+        when(orderRepository.findById(1L))
+                .thenReturn(Optional.of(order));
 
-        PaymentResponse result = paymentService.payForOrder(1L, paymentReq);
+        when(paymentRepository.existsByOrderAndPaymentStatus(
+                order,
+                PaymentStatus.PAID))
+                .thenReturn(false);
+
+        when(paymentRepository.save(any(Payment.class)))
+                .thenAnswer(inv -> inv.getArgument(0));
+
+        when(orderRepository.save(any(Order.class)))
+                .thenReturn(order);
+
+        iyzicoPaymentMock.when(() ->
+                com.iyzipay.model.Payment.create(
+                        any(CreatePaymentRequest.class),
+                        any(Options.class)
+                )
+        ).thenReturn(iyzicoResult);
+
+        ResponseEntity<ApiResponse<PaymentResponse>> response =
+                paymentService.payForOrder(1L, paymentReq);
+
+        PaymentResponse result = response.getBody().getData();
 
         assertNotNull(result);
         assertEquals(PaymentStatus.PAID, result.getPaymentStatus());
@@ -148,17 +170,37 @@ class PaymentServiceTest {
 
     @Test
     void payForOrder_marks_failed_when_iyzico_declines() {
-        com.iyzipay.model.Payment iyzicoResult = mock(com.iyzipay.model.Payment.class);
+
+        com.iyzipay.model.Payment iyzicoResult =
+                mock(com.iyzipay.model.Payment.class);
+
         when(iyzicoResult.getStatus()).thenReturn("failure");
-        when(iyzicoResult.getErrorMessage()).thenReturn("Insufficient funds");
+        when(iyzicoResult.getErrorMessage())
+                .thenReturn("Insufficient funds");
 
-        when(orderRepository.findById(1L)).thenReturn(Optional.of(order));
-        when(paymentRepository.existsByOrderAndPaymentStatus(order, PaymentStatus.PAID)).thenReturn(false);
-        when(paymentRepository.save(any(Payment.class))).thenAnswer(inv -> inv.getArgument(0));
-        iyzicoPaymentMock.when(() -> com.iyzipay.model.Payment.create(
-                any(CreatePaymentRequest.class), any(Options.class))).thenReturn(iyzicoResult);
+        when(orderRepository.findById(1L))
+                .thenReturn(Optional.of(order));
 
-        PaymentResponse result = paymentService.payForOrder(1L, paymentReq);
+        when(paymentRepository.existsByOrderAndPaymentStatus(
+                order,
+                PaymentStatus.PAID))
+                .thenReturn(false);
+
+        when(paymentRepository.save(any(Payment.class)))
+                .thenAnswer(inv -> inv.getArgument(0));
+
+        iyzicoPaymentMock.when(() ->
+                com.iyzipay.model.Payment.create(
+                        any(CreatePaymentRequest.class),
+                        any(Options.class)
+                )
+        ).thenReturn(iyzicoResult);
+
+        ResponseEntity<ApiResponse<PaymentResponse>> response =
+                paymentService.payForOrder(1L, paymentReq);
+
+        assertNotNull(response.getBody());
+        PaymentResponse result = response.getBody().getData();
 
         assertNotNull(result);
         assertEquals(PaymentStatus.FAILED, result.getPaymentStatus());

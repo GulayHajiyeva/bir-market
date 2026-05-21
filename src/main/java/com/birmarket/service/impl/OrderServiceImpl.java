@@ -8,6 +8,7 @@ import com.birmarket.enums.Role;
 import com.birmarket.exception.BadRequestException;
 import com.birmarket.exception.ForbiddenException;
 import com.birmarket.exception.NotFoundException;
+import com.birmarket.mapper.OrderMapper;
 import com.birmarket.repository.*;
 import com.birmarket.service.interfaces.OrderService;
 import com.birmarket.util.SecurityHelper;
@@ -34,10 +35,12 @@ public class OrderServiceImpl implements OrderService {
     private final CartRepository cartRepository;
     private final CartItemRepository cartItemRepository;
     private final ProductRepository productRepository;
+    private final OrderMapper orderMapper;
 
     @Override
     @Transactional
     public OrderResponse placeOrder(PlaceOrderRequest req) {
+
         log.info("ActionLog.placeOrder.start");
 
         User customer = SecurityHelper.getCurrentUser();
@@ -53,30 +56,36 @@ public class OrderServiceImpl implements OrderService {
         BigDecimal orderTotal = BigDecimal.ZERO;
 
         for (CartItem cartItem : cart.getItems()) {
-            Product product = productRepository
-                    .findByIdForUpdate(cartItem.getProduct().getId())
-                    .orElseThrow(() -> new NotFoundException("Product not found"));
+
+            Product product = productRepository.findByIdForUpdate(
+                    cartItem.getProduct().getId()
+            ).orElseThrow(() -> new NotFoundException("Product not found"));
 
             if (!product.isActive()) {
-                throw new BadRequestException("Product '" + product.getName() + "' is no longer available");
+                throw new BadRequestException(
+                        "Product '" + product.getName() + "' is no longer available"
+                );
             }
 
             if (product.getStockQuantity() < cartItem.getQuantity()) {
                 throw new BadRequestException(
-                        "Not enough stock for '" + product.getName() + "'. Available: " + product.getStockQuantity()
+                        "Not enough stock for '" + product.getName() + "'"
                 );
             }
 
-            BigDecimal subtotal = product.getPrice().multiply(BigDecimal.valueOf(cartItem.getQuantity()));
+            BigDecimal subtotal =
+                    product.getPrice().multiply(BigDecimal.valueOf(cartItem.getQuantity()));
+
             orderTotal = orderTotal.add(subtotal);
 
-            OrderItem orderItem = new OrderItem();
-            orderItem.setProduct(product);
-            orderItem.setSeller(product.getSeller());
-            orderItem.setQuantity(cartItem.getQuantity());
-            orderItem.setUnitPrice(product.getPrice());
-            orderItem.setSubtotal(subtotal);
-            orderItems.add(orderItem);
+            OrderItem item = new OrderItem();
+            item.setProduct(product);
+            item.setSeller(product.getSeller());
+            item.setQuantity(cartItem.getQuantity());
+            item.setUnitPrice(product.getPrice());
+            item.setSubtotal(subtotal);
+
+            orderItems.add(item);
         }
 
         Order order = new Order();
@@ -92,6 +101,7 @@ public class OrderServiceImpl implements OrderService {
         for (OrderItem item : orderItems) {
             item.setOrder(savedOrder);
         }
+
         savedOrder.setOrderItems(orderItems);
         savedOrder = orderRepository.save(savedOrder);
 
@@ -104,54 +114,57 @@ public class OrderServiceImpl implements OrderService {
         cartItemRepository.deleteAllByCart(cart);
         cart.getItems().clear();
 
-        OrderResponse response = OrderResponse.fromEntity(savedOrder);
-
         log.info("ActionLog.placeOrder.end");
-        return response;
+
+        return orderMapper.toResponse(savedOrder);
     }
 
     @Override
     public OrderResponse getOrderById(Long id) {
+
         log.info("ActionLog.getOrderById.start");
+
         Order order = findOrderByIdWithDetails(id);
         checkOrderAccess(order);
-        OrderResponse response = OrderResponse.fromEntity(order);
+
         log.info("ActionLog.getOrderById.end");
-        return response;
+
+        return orderMapper.toResponse(order);
     }
 
     @Override
     public Page<OrderResponse> getMyOrders(OrderStatus status, Pageable pageable) {
+
         log.info("ActionLog.getMyOrders.start");
 
         User customer = SecurityHelper.getCurrentUser();
-        Page<Order> orders;
 
-        if (status != null) {
-            orders = orderRepository.findByCustomerAndStatus(customer, status, pageable);
-        } else {
-            orders = orderRepository.findByCustomer(customer, pageable);
-        }
-
-        Page<OrderResponse> response = orders.map(OrderResponse::fromEntity);
+        Page<Order> orders =
+                (status != null)
+                        ? orderRepository.findByCustomerAndStatus(customer, status, pageable)
+                        : orderRepository.findByCustomer(customer, pageable);
 
         log.info("ActionLog.getMyOrders.end");
-        return response;
+
+        return orders.map(orderMapper::toResponse);
     }
 
     @Override
     @Transactional
     public OrderResponse cancelOrder(Long id) {
+
         log.info("ActionLog.cancelOrder.start");
 
         User customer = SecurityHelper.getCurrentUser();
+
         Order order = findOrderById(id);
 
         if (!order.getCustomer().getId().equals(customer.getId())) {
             throw new ForbiddenException("This is not your order");
         }
 
-        if (order.getStatus() != OrderStatus.PENDING && order.getStatus() != OrderStatus.CONFIRMED) {
+        if (order.getStatus() != OrderStatus.PENDING &&
+                order.getStatus() != OrderStatus.CONFIRMED) {
             throw new BadRequestException("Cannot cancel order with status: " + order.getStatus());
         }
 
@@ -164,33 +177,39 @@ public class OrderServiceImpl implements OrderService {
         order.setStatus(OrderStatus.CANCELLED);
         orderRepository.save(order);
 
-        OrderResponse response = OrderResponse.fromEntity(order);
-
         log.info("ActionLog.cancelOrder.end");
-        return response;
+
+        return orderMapper.toResponse(order);
     }
 
     @Override
     public Page<OrderResponse> getOrdersForSeller(Pageable pageable) {
+
         log.info("ActionLog.getOrdersForSeller.start");
+
         User seller = SecurityHelper.getCurrentUser();
-        Page<OrderResponse> response = orderRepository.findOrdersForSeller(seller, pageable)
-                .map(OrderResponse::fromEntity);
+
         log.info("ActionLog.getOrdersForSeller.end");
-        return response;
+
+        return orderRepository.findOrdersForSeller(seller, pageable)
+                .map(orderMapper::toResponse);
     }
 
     @Override
     public Page<OrderResponse> getAllOrders(Pageable pageable) {
+
         log.info("ActionLog.getAllOrders.start");
-        Page<OrderResponse> response = orderRepository.findAll(pageable).map(OrderResponse::fromEntity);
+
         log.info("ActionLog.getAllOrders.end");
-        return response;
+
+        return orderRepository.findAll(pageable)
+                .map(orderMapper::toResponse);
     }
 
     @Override
     @Transactional
     public OrderResponse updateStatus(Long id, OrderStatus newStatus) {
+
         log.info("ActionLog.updateStatus.start");
 
         Order order = findOrderById(id);
@@ -202,10 +221,9 @@ public class OrderServiceImpl implements OrderService {
         order.setStatus(newStatus);
         orderRepository.save(order);
 
-        OrderResponse response = OrderResponse.fromEntity(order);
-
         log.info("ActionLog.updateStatus.end");
-        return response;
+
+        return orderMapper.toResponse(order);
     }
 
     private Order findOrderById(Long id) {
@@ -221,9 +239,7 @@ public class OrderServiceImpl implements OrderService {
     private void checkOrderAccess(Order order) {
         User current = SecurityHelper.getCurrentUser();
 
-        if (current.getRole() == Role.ADMIN) {
-            return;
-        }
+        if (current.getRole() == Role.ADMIN) return;
 
         if (current.getRole() == Role.CUSTOMER) {
             if (!order.getCustomer().getId().equals(current.getId())) {
@@ -233,24 +249,25 @@ public class OrderServiceImpl implements OrderService {
         }
 
         if (current.getRole() == Role.SELLER) {
-            boolean hasSellersItems = order.getOrderItems().stream()
-                    .anyMatch(item -> item.getSeller().getId().equals(current.getId()));
-            if (!hasSellersItems) {
+            boolean hasItems = order.getOrderItems().stream()
+                    .anyMatch(i -> i.getSeller().getId().equals(current.getId()));
+
+            if (!hasItems) {
                 throw new ForbiddenException("You don't have products in this order");
             }
         }
     }
 
     private void validateStatusChange(OrderStatus current, OrderStatus next) {
-        boolean valid = false;
 
-        if (current == OrderStatus.PENDING && next == OrderStatus.CONFIRMED) valid = true;
-        if (current == OrderStatus.PENDING && next == OrderStatus.CANCELLED) valid = true;
-        if (current == OrderStatus.CONFIRMED && next == OrderStatus.PROCESSING) valid = true;
-        if (current == OrderStatus.CONFIRMED && next == OrderStatus.CANCELLED) valid = true;
-        if (current == OrderStatus.PROCESSING && next == OrderStatus.SHIPPED) valid = true;
-        if (current == OrderStatus.SHIPPED && next == OrderStatus.DELIVERED) valid = true;
-        if (current == OrderStatus.DELIVERED && next == OrderStatus.REFUNDED) valid = true;
+        boolean valid =
+                (current == OrderStatus.PENDING && next == OrderStatus.CONFIRMED) ||
+                        (current == OrderStatus.PENDING && next == OrderStatus.CANCELLED) ||
+                        (current == OrderStatus.CONFIRMED && next == OrderStatus.PROCESSING) ||
+                        (current == OrderStatus.CONFIRMED && next == OrderStatus.CANCELLED) ||
+                        (current == OrderStatus.PROCESSING && next == OrderStatus.SHIPPED) ||
+                        (current == OrderStatus.SHIPPED && next == OrderStatus.DELIVERED) ||
+                        (current == OrderStatus.DELIVERED && next == OrderStatus.REFUNDED);
 
         if (!valid) {
             throw new BadRequestException("Cannot change status from " + current + " to " + next);
@@ -258,8 +275,15 @@ public class OrderServiceImpl implements OrderService {
     }
 
     private String generateOrderNumber() {
-        String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"));
-        String randomPart = UUID.randomUUID().toString().substring(0, 6).toUpperCase();
+
+        String timestamp = LocalDateTime.now()
+                .format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"));
+
+        String randomPart = UUID.randomUUID()
+                .toString()
+                .substring(0, 6)
+                .toUpperCase();
+
         return "BM-" + timestamp + "-" + randomPart;
     }
 }

@@ -17,20 +17,13 @@ import org.springframework.web.bind.annotation.*;
 public class PaymentController {
 
     private final PaymentService paymentService;
-
     @PostMapping("/pay/{orderId}")
     @PreAuthorize("hasRole('CUSTOMER')")
     public ResponseEntity<ApiResponse<PaymentResponse>> payForOrder(
             @PathVariable Long orderId,
             @Valid @RequestBody PaymentRequest req) {
 
-        PaymentResponse response = paymentService.payForOrder(orderId, req);
-
-        if (response.getPaymentStatus() == PaymentStatus.PAID) {
-            return ResponseEntity.ok(ApiResponse.ok("Payment successful!", response));
-        } else {
-            return ResponseEntity.ok(ApiResponse.fail("Payment failed: " + response.getErrorMessage(), response));
-        }
+        return paymentService.payForOrder(orderId, req);
     }
 
     @GetMapping("/order/{orderId}")

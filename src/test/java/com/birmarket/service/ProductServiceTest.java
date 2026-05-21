@@ -1,17 +1,18 @@
 package com.birmarket.service;
 
-import com.birmarket.service.impl.ProductServiceImpl;
-import com.birmarket.service.interfaces.StorageService;
 import com.birmarket.dto.ProductRequest;
 import com.birmarket.dto.ProductResponse;
 import com.birmarket.entity.Category;
 import com.birmarket.entity.Product;
-import com.birmarket.enums.Role;
 import com.birmarket.entity.User;
+import com.birmarket.enums.Role;
 import com.birmarket.exception.ForbiddenException;
 import com.birmarket.exception.NotFoundException;
+import com.birmarket.mapper.ProductMapper;
 import com.birmarket.repository.CategoryRepository;
 import com.birmarket.repository.ProductRepository;
+import com.birmarket.service.impl.ProductServiceImpl;
+import com.birmarket.service.interfaces.StorageService;
 import com.birmarket.util.SecurityHelper;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -41,10 +42,14 @@ class ProductServiceTest {
     @Mock
     private StorageService storageService;
 
+    @Mock
+    private ProductMapper productMapper;
+
     @InjectMocks
     private ProductServiceImpl productService;
 
     private MockedStatic<SecurityHelper> securityHelperMock;
+
     private User seller;
     private User anotherSeller;
     private Category category;
@@ -52,6 +57,7 @@ class ProductServiceTest {
 
     @BeforeEach
     void setup() {
+
         seller = new User();
         seller.setId(1L);
         seller.setEmail("seller@test.com");
@@ -78,7 +84,9 @@ class ProductServiceTest {
         product.setSeller(seller);
 
         securityHelperMock = mockStatic(SecurityHelper.class);
-        securityHelperMock.when(SecurityHelper::getCurrentUser).thenReturn(seller);
+
+        securityHelperMock.when(SecurityHelper::getCurrentUser)
+                .thenReturn(seller);
     }
 
     @AfterEach
@@ -88,68 +96,116 @@ class ProductServiceTest {
 
     @Test
     void createProduct_works() {
+
         ProductRequest req = new ProductRequest();
         req.setName("New Phone");
         req.setPrice(BigDecimal.valueOf(299));
         req.setStockQuantity(5);
         req.setCategoryId(1L);
 
-        when(categoryRepository.findById(1L)).thenReturn(Optional.of(category));
-        when(productRepository.save(any(Product.class))).thenReturn(product);
+        ProductResponse response = new ProductResponse();
+        response.setId(1L);
+        response.setName("Test Phone");
+
+        when(categoryRepository.findById(1L))
+                .thenReturn(Optional.of(category));
+
+        when(productRepository.save(any(Product.class)))
+                .thenReturn(product);
+
+        when(productMapper.toResponse(any(Product.class)))
+                .thenReturn(response);
 
         ProductResponse result = productService.createProduct(req);
 
         assertNotNull(result);
+
         verify(productRepository).save(any(Product.class));
     }
 
     @Test
     void createProduct_fails_when_category_not_found() {
+
         ProductRequest req = new ProductRequest();
         req.setName("Phone");
         req.setPrice(BigDecimal.valueOf(100));
         req.setCategoryId(99L);
 
-        when(categoryRepository.findById(99L)).thenReturn(Optional.empty());
+        when(categoryRepository.findById(99L))
+                .thenReturn(Optional.empty());
 
-        assertThrows(NotFoundException.class, () -> productService.createProduct(req));
+        assertThrows(
+                NotFoundException.class,
+                () -> productService.createProduct(req)
+        );
     }
 
     @Test
     void deleteProduct_works_for_owner() {
-        when(productRepository.findById(1L)).thenReturn(Optional.of(product));
-        when(productRepository.save(any())).thenReturn(product);
+
+        when(productRepository.findById(1L))
+                .thenReturn(Optional.of(product));
+
+        when(productRepository.save(any(Product.class)))
+                .thenReturn(product);
 
         productService.deleteProduct(1L);
 
-        // product should be deactivated not actually deleted
         assertFalse(product.isActive());
+
         verify(productRepository).save(product);
     }
 
     @Test
     void deleteProduct_blocked_for_other_seller() {
-        // simulate a different seller trying to delete this product
-        securityHelperMock.when(SecurityHelper::getCurrentUser).thenReturn(anotherSeller);
-        when(productRepository.findById(1L)).thenReturn(Optional.of(product));
 
-        assertThrows(ForbiddenException.class, () -> productService.deleteProduct(1L));
+        securityHelperMock.when(SecurityHelper::getCurrentUser)
+                .thenReturn(anotherSeller);
+
+        when(productRepository.findById(1L))
+                .thenReturn(Optional.of(product));
+
+        assertThrows(
+                ForbiddenException.class,
+                () -> productService.deleteProduct(1L)
+        );
+
         verify(productRepository, never()).save(any());
     }
 
     @Test
     void getProduct_throws_when_not_found() {
-        when(productRepository.findById(999L)).thenReturn(Optional.empty());
-        assertThrows(NotFoundException.class, () -> productService.getProduct(999L));
+
+        when(productRepository.findById(999L))
+                .thenReturn(Optional.empty());
+
+        assertThrows(
+                NotFoundException.class,
+                () -> productService.getProduct(999L)
+        );
     }
 
     @Test
     void updateStock_changes_quantity() {
-        when(productRepository.findByIdAndSeller(1L, seller)).thenReturn(Optional.of(product));
-        when(productRepository.save(any())).thenReturn(product);
 
-        productService.updateStock(1L, 50);
+        ProductResponse response = new ProductResponse();
+        response.setId(1L);
+        response.setStockQuantity(50);
 
+        when(productRepository.findByIdAndSeller(1L, seller))
+                .thenReturn(Optional.of(product));
+
+        when(productRepository.save(any(Product.class)))
+                .thenReturn(product);
+
+        when(productMapper.toResponse(any(Product.class)))
+                .thenReturn(response);
+
+        ProductResponse result = productService.updateStock(1L, 50);
+
+        assertNotNull(result);
         assertEquals(50, product.getStockQuantity());
+
+        verify(productRepository).save(product);
     }
 }

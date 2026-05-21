@@ -8,6 +8,7 @@ import com.birmarket.entity.User;
 import com.birmarket.exception.BadRequestException;
 import com.birmarket.exception.ForbiddenException;
 import com.birmarket.exception.NotFoundException;
+import com.birmarket.mapper.ProductMapper;
 import com.birmarket.repository.CategoryRepository;
 import com.birmarket.repository.ProductRepository;
 import com.birmarket.service.interfaces.ProductService;
@@ -33,6 +34,7 @@ public class ProductServiceImpl implements ProductService {
     private final ProductRepository productRepository;
     private final CategoryRepository categoryRepository;
     private final StorageService storageService;
+    private final ProductMapper productMapper;
 
     @Value("${minio.bucket}")
     private String minioBucket;
@@ -41,9 +43,11 @@ public class ProductServiceImpl implements ProductService {
     public Page<ProductResponse> searchProducts(Long categoryId, BigDecimal minPrice,
                                                 BigDecimal maxPrice, String keyword, Pageable pageable) {
         log.info("ActionLog.searchProducts.start");
+
         Page<ProductResponse> response = productRepository
                 .searchProducts(categoryId, minPrice, maxPrice, keyword, pageable)
-                .map(ProductResponse::fromEntity);
+                .map(productMapper::toResponse);
+
         log.info("ActionLog.searchProducts.end");
         return response;
     }
@@ -51,8 +55,10 @@ public class ProductServiceImpl implements ProductService {
     @Override
     public ProductResponse getProduct(Long id) {
         log.info("ActionLog.getProduct.start");
+
         Product p = findActiveProduct(id);
-        ProductResponse response = ProductResponse.fromEntity(p);
+        ProductResponse response = productMapper.toResponse(p);
+
         log.info("ActionLog.getProduct.end");
         return response;
     }
@@ -80,7 +86,7 @@ public class ProductServiceImpl implements ProductService {
         product.setSeller(seller);
 
         Product saved = productRepository.save(product);
-        ProductResponse response = ProductResponse.fromEntity(saved);
+        ProductResponse response = productMapper.toResponse(saved);
 
         log.info("ActionLog.createProduct.end");
         return response;
@@ -106,7 +112,8 @@ public class ProductServiceImpl implements ProductService {
             product.setCategory(newCategory);
         }
 
-        ProductResponse response = ProductResponse.fromEntity(productRepository.save(product));
+        Product saved = productRepository.save(product);
+        ProductResponse response = productMapper.toResponse(saved);
 
         log.info("ActionLog.updateProduct.end");
         return response;
@@ -118,6 +125,7 @@ public class ProductServiceImpl implements ProductService {
 
         Product product = findProductById(id);
         checkOwnership(product);
+
         product.setActive(false);
         productRepository.save(product);
 
@@ -136,7 +144,9 @@ public class ProductServiceImpl implements ProductService {
                 .orElseThrow(() -> new NotFoundException("Product not found or access denied"));
 
         product.setStockQuantity(quantity);
-        ProductResponse response = ProductResponse.fromEntity(productRepository.save(product));
+
+        Product saved = productRepository.save(product);
+        ProductResponse response = productMapper.toResponse(saved);
 
         log.info("ActionLog.updateStock.end");
         return response;
@@ -145,9 +155,13 @@ public class ProductServiceImpl implements ProductService {
     @Override
     public Page<ProductResponse> getMyProducts(Pageable pageable) {
         log.info("ActionLog.getMyProducts.start");
+
         User seller = SecurityHelper.getCurrentUser();
-        Page<ProductResponse> response = productRepository.findBySellerAndActiveTrue(seller, pageable)
-                .map(ProductResponse::fromEntity);
+
+        Page<ProductResponse> response = productRepository
+                .findBySellerAndActiveTrue(seller, pageable)
+                .map(productMapper::toResponse);
+
         log.info("ActionLog.getMyProducts.end");
         return response;
     }
@@ -162,11 +176,15 @@ public class ProductServiceImpl implements ProductService {
         Product product = productRepository.findByIdAndSeller(productId, seller)
                 .orElseThrow(() -> new NotFoundException("Product not found or access denied"));
 
-        String objectName = "products/" + productId + "/" + UUID.randomUUID() + "_" + file.getOriginalFilename();
+        String objectName = "products/" + productId + "/" + UUID.randomUUID()
+                + "_" + file.getOriginalFilename();
+
         String imageUrl = storageService.uploadFile(minioBucket, objectName, file);
 
         product.setImageUrl(imageUrl);
-        ProductResponse response = ProductResponse.fromEntity(productRepository.save(product));
+
+        Product saved = productRepository.save(product);
+        ProductResponse response = productMapper.toResponse(saved);
 
         log.info("ActionLog.uploadProductImage.end");
         return response;

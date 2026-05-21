@@ -1,5 +1,6 @@
 package com.birmarket.service.impl;
 
+import com.birmarket.dto.ApiResponse;
 import com.birmarket.dto.PaymentRequest;
 import com.birmarket.dto.PaymentResponse;
 import com.birmarket.entity.Order;
@@ -29,6 +30,7 @@ import com.iyzipay.model.PaymentGroup;
 import com.iyzipay.request.CreatePaymentRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -48,7 +50,9 @@ public class PaymentServiceImpl implements PaymentService {
     private final Options iyzicoOptions;
     @Override
     @Transactional
-    public PaymentResponse payForOrder(Long orderId, PaymentRequest req) {
+    public ResponseEntity<ApiResponse<PaymentResponse>> payForOrder(
+            Long orderId,
+            PaymentRequest req) {
 
         log.info("ActionLog.payForOrder.start");
 
@@ -60,6 +64,10 @@ public class PaymentServiceImpl implements PaymentService {
 
         if (!order.getCustomer().getId().equals(customer.getId())) {
             throw new ForbiddenException("This is not your order");
+        }
+
+        if (order.getStatus() != OrderStatus.PENDING) {
+            throw new BadRequestException("Order is not pending");
         }
 
         if (paymentRepository.existsByOrderAndPaymentStatus(order, PaymentStatus.PAID)) {
@@ -104,7 +112,18 @@ public class PaymentServiceImpl implements PaymentService {
 
         log.info("ActionLog.payForOrder.end");
 
-        return response;
+        if (response.getPaymentStatus() == PaymentStatus.PAID) {
+            return ResponseEntity.ok(
+                    ApiResponse.ok("Payment successful!", response)
+            );
+        }
+
+        return ResponseEntity.ok(
+                ApiResponse.fail(
+                        "Payment failed: " + response.getErrorMessage(),
+                        response
+                )
+        );
     }
 
     @Override

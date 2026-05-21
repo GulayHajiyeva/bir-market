@@ -1,5 +1,6 @@
 package com.birmarket.service;
 
+import com.birmarket.mapper.AuthMapper;
 import com.birmarket.service.impl.AuthServiceImpl;
 import com.birmarket.dto.AuthResponse;
 import com.birmarket.dto.LoginRequest;
@@ -29,7 +30,8 @@ import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class AuthServiceTest {
-
+    @Mock
+    private AuthMapper authMapper;
     @Mock
     private UserRepository userRepository;
 
@@ -65,16 +67,39 @@ class AuthServiceTest {
 
     @Test
     void register_success() {
-        when(userRepository.existsByEmail(anyString())).thenReturn(false);
-        when(passwordEncoder.encode(anyString())).thenReturn("hashedpassword");
-        when(userRepository.save(any(User.class))).thenReturn(testUser);
-        when(jwtUtil.createToken(any())).thenReturn("some-token");
+
+        when(userRepository.existsByEmail(anyString()))
+                .thenReturn(false);
+
+        when(authMapper.toUser(any(RegisterRequest.class)))
+                .thenReturn(testUser);
+
+        when(passwordEncoder.encode(anyString()))
+                .thenReturn("hashedpassword");
+
+        when(userRepository.save(any(User.class)))
+                .thenReturn(testUser);
+
+        when(jwtUtil.createToken(any()))
+                .thenReturn("some-token");
+
+        when(authMapper.toAuthResponse(anyString(), any(User.class)))
+                .thenReturn(
+                        new AuthResponse(
+                                "some-token",
+                                1L,
+                                "test@test.com",
+                                "Test User",
+                                Role.CUSTOMER
+                        )
+                );
 
         AuthResponse result = authService.register(registerReq);
 
         assertNotNull(result);
         assertEquals("some-token", result.getToken());
         assertEquals("test@test.com", result.getEmail());
+
         verify(userRepository).save(any(User.class));
     }
 
@@ -101,9 +126,25 @@ class AuthServiceTest {
         loginReq.setEmail("test@test.com");
         loginReq.setPassword("Test@1234");
 
-        when(authManager.authenticate(any(UsernamePasswordAuthenticationToken.class))).thenReturn(null);
-        when(userRepository.findByEmail("test@test.com")).thenReturn(Optional.of(testUser));
-        when(jwtUtil.createToken(any())).thenReturn("login-token");
+        when(authManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
+                .thenReturn(null);
+
+        when(userRepository.findByEmail("test@test.com"))
+                .thenReturn(Optional.of(testUser));
+
+        when(jwtUtil.createToken(any()))
+                .thenReturn("login-token");
+
+        when(authMapper.toAuthResponse(anyString(), any(User.class)))
+                .thenReturn(
+                        new AuthResponse(
+                                "login-token",
+                                1L,
+                                "test@test.com",
+                                "Test User",
+                                Role.CUSTOMER
+                        )
+                );
 
         AuthResponse result = authService.login(loginReq);
 

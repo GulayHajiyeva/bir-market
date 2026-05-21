@@ -5,6 +5,7 @@ import com.birmarket.enums.Role;
 import com.birmarket.entity.User;
 import com.birmarket.exception.BadRequestException;
 import com.birmarket.exception.NotFoundException;
+import com.birmarket.mapper.UserMapper;
 import com.birmarket.repository.UserRepository;
 import com.birmarket.service.interfaces.UserService;
 import com.birmarket.util.SecurityHelper;
@@ -20,16 +21,22 @@ import org.springframework.stereotype.Service;
 public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
+    private final UserMapper userMapper;
 
     @Override
     public Page<UserResponse> getAllUsers(Role role, Pageable pageable) {
         log.info("ActionLog.getAllUsers.start");
+
         Page<UserResponse> response;
+
         if (role != null) {
-            response = userRepository.findByRole(role, pageable).map(UserResponse::fromEntity);
+            response = userRepository.findByRole(role, pageable)
+                    .map(userMapper::toResponse);
         } else {
-            response = userRepository.findAll(pageable).map(UserResponse::fromEntity);
+            response = userRepository.findAll(pageable)
+                    .map(userMapper::toResponse);
         }
+
         log.info("ActionLog.getAllUsers.end");
         return response;
     }
@@ -37,7 +44,10 @@ public class UserServiceImpl implements UserService {
     @Override
     public UserResponse getUserById(Long id) {
         log.info("ActionLog.getUserById.start");
-        UserResponse response = UserResponse.fromEntity(findById(id));
+
+        User user = findById(id);
+        UserResponse response = userMapper.toResponse(user);
+
         log.info("ActionLog.getUserById.end");
         return response;
     }
@@ -56,7 +66,9 @@ public class UserServiceImpl implements UserService {
         }
 
         user.setBlocked(true);
-        UserResponse response = UserResponse.fromEntity(userRepository.save(user));
+
+        User saved = userRepository.save(user);
+        UserResponse response = userMapper.toResponse(saved);
 
         log.info("ActionLog.blockUser.end");
         return response;
@@ -73,7 +85,9 @@ public class UserServiceImpl implements UserService {
         }
 
         user.setBlocked(false);
-        UserResponse response = UserResponse.fromEntity(userRepository.save(user));
+
+        User saved = userRepository.save(user);
+        UserResponse response = userMapper.toResponse(saved);
 
         log.info("ActionLog.unblockUser.end");
         return response;
@@ -99,7 +113,11 @@ public class UserServiceImpl implements UserService {
     @Override
     public UserResponse getMyProfile() {
         log.info("ActionLog.getMyProfile.start");
-        UserResponse response = UserResponse.fromEntity(SecurityHelper.getCurrentUser());
+
+        UserResponse response = userMapper.toResponse(
+                SecurityHelper.getCurrentUser()
+        );
+
         log.info("ActionLog.getMyProfile.end");
         return response;
     }

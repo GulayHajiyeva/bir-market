@@ -1,6 +1,7 @@
 package com.birmarket.service;
 
 import com.birmarket.enums.Role;
+import com.birmarket.mapper.CartMapper;
 import com.birmarket.service.impl.CartServiceImpl;
 import com.birmarket.dto.AddToCartRequest;
 import com.birmarket.dto.CartResponse;
@@ -30,7 +31,8 @@ import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class CartServiceTest {
-
+    @Mock
+    private CartMapper cartMapper;
     @Mock
     private CartRepository cartRepository;
 
@@ -89,28 +91,55 @@ class CartServiceTest {
 
     @Test
     void addItem_successfully_adds_new_item() {
+
         AddToCartRequest req = new AddToCartRequest();
         req.setProductId(1L);
         req.setQuantity(2);
 
-        when(cartRepository.findByUserWithItems(customer)).thenReturn(Optional.of(cart));
-        when(productRepository.findById(1L)).thenReturn(Optional.of(product));
-        when(cartItemRepository.findByCartAndProduct(cart, product)).thenReturn(Optional.empty());
-        when(cartRepository.findById(1L)).thenReturn(Optional.of(cart));
+        CartItem newItem = new CartItem();
+        newItem.setCart(cart);
+        newItem.setProduct(product);
+        newItem.setQuantity(2);
+        newItem.setPriceAtAddition(BigDecimal.valueOf(100));
+
+        cart.setItems(new ArrayList<>());
+
+        when(cartRepository.findByUserWithItems(customer))
+                .thenReturn(Optional.of(cart));
+
+        when(productRepository.findById(1L))
+                .thenReturn(Optional.of(product));
+
+        when(cartItemRepository.findByCartAndProduct(cart, product))
+                .thenReturn(Optional.empty());
+
+        when(cartMapper.toCartItem(any(), any(), anyInt(), any()))
+                .thenReturn(newItem);
+
+        when(cartMapper.toCartItemInfo(any(CartItem.class)))
+                .thenReturn(new CartResponse.CartItemInfo());
+
+        when(cartRepository.save(any(Cart.class)))
+                .thenReturn(cart);
+
+        when(cartRepository.findByUserWithItems(customer))
+                .thenReturn(Optional.of(cart));
 
         CartResponse result = cartService.addItem(req);
 
         assertNotNull(result);
-        verify(cartItemRepository).save(any(CartItem.class));
+
+        verify(cartRepository).save(any(Cart.class));
+        verify(cartItemRepository, never()).save(any());
     }
 
     @Test
     void addItem_fails_when_not_enough_stock() {
-        product.setStockQuantity(1); // only 1 in stock
+        product.setStockQuantity(1);
 
         AddToCartRequest req = new AddToCartRequest();
         req.setProductId(1L);
-        req.setQuantity(5); // but requesting 5
+        req.setQuantity(5);
 
         when(cartRepository.findByUserWithItems(customer)).thenReturn(Optional.of(cart));
         when(productRepository.findById(1L)).thenReturn(Optional.of(product));
@@ -135,21 +164,33 @@ class CartServiceTest {
 
     @Test
     void updateItemQuantity_changes_quantity() {
+
         CartItem item = new CartItem();
         item.setId(1L);
         item.setCart(cart);
         item.setProduct(product);
         item.setQuantity(2);
         item.setPriceAtAddition(BigDecimal.valueOf(100));
+
         cart.getItems().add(item);
 
-        when(cartItemRepository.findById(1L)).thenReturn(Optional.of(item));
-        when(cartItemRepository.save(any())).thenReturn(item);
+        CartResponse.CartItemInfo itemInfo =
+                new CartResponse.CartItemInfo();
+
+        itemInfo.setCurrentPrice(BigDecimal.valueOf(100));
+
+        when(cartItemRepository.findById(1L))
+                .thenReturn(Optional.of(item));
+
+        when(cartMapper.toCartItemInfo(any(CartItem.class)))
+                .thenReturn(itemInfo);
 
         CartResponse result = cartService.updateItemQuantity(1L, 5);
 
         assertEquals(5, item.getQuantity());
         assertNotNull(result);
+
+        verify(cartItemRepository).save(item);
     }
 
     @Test
